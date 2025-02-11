@@ -24,7 +24,8 @@ def extract_data_from_pdf(pdf_path):
             "modalidad": extract_next_line(lines, "MODALIDAD"),
             "programa": extract_next_line(lines, "PROGRAMA"),
             "documento": extract_next_line(lines, "DOCUMENTO"),
-            "total": extract_next_line(lines, "TOTAL")
+            "total": extract_next_line(lines, "TOTAL"),
+            "entrevistador": extract_next_line(lines, "ENTREVISTADOR")
         }
 
         # Verificar si el documento contiene DNI correctamente
@@ -51,6 +52,6 @@ def extract_next_line(lines, keyword):
 
 # Prueba de la función
 if __name__ == "__main__":
-    pdf_path = r"c:\Users\SEBASTIAN\Downloads\entrevista-60482615.pdf"  # Reemplazar con un PDF de prueba
+    pdf_path = r"c:\Users\SEBASTIAN\Downloads\entrevista-60847269.pdf"  # Reemplazar con un PDF de prueba
     resultado = extract_data_from_pdf(pdf_path)
     print(resultado)
