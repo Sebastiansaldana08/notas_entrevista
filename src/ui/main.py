@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import os
 import sys
+import zipfile
+import shutil
+import time
 from collections import defaultdict
 
 # Agregar el directorio raíz del proyecto a `sys.path`
@@ -27,23 +30,69 @@ else:
     st.header("📄 Procesador de Entrevistas - Todas las Carreras")
     multiple_pdfs = False
 
-# Cargar archivos
-st.subheader("Subir archivos PDF")
-uploaded_files = st.file_uploader("Selecciona archivos PDF", type=["pdf"], accept_multiple_files=True, key="file_uploader")
+# Definir carpeta temporal de trabajo
+DATA_FOLDER = "data"
+
+# Función para limpiar la carpeta de datos
+def clear_data_folder():
+    if os.path.exists(DATA_FOLDER):
+        for file in os.listdir(DATA_FOLDER):
+            file_path = os.path.join(DATA_FOLDER, file)
+            try:
+                os.chmod(file_path, 0o777)  # Cambiar permisos
+                os.remove(file_path)
+            except Exception as e:
+                print(f"Error al eliminar {file_path}: {e}")
+
+# Crear carpeta si no existe
+os.makedirs(DATA_FOLDER, exist_ok=True)
+
+# Cargar archivos o carpeta ZIP
+st.subheader("Subir archivos PDF o una carpeta ZIP con PDFs")
+uploaded_files = st.file_uploader("Selecciona archivos PDF o un ZIP", type=["pdf", "zip"], accept_multiple_files=True, key="file_uploader")
+
+# Procesar archivos subidos
+pdf_files = []
 
 if uploaded_files:
+    # Limpiar solo los archivos dentro de la carpeta
+    clear_data_folder()
+
+    for file in uploaded_files:
+        if file.name.endswith(".zip"):
+            # Guardar archivo ZIP temporalmente
+            zip_path = os.path.join(DATA_FOLDER, file.name)
+            with open(zip_path, "wb") as f:
+                f.write(file.getbuffer())
+
+            # Extraer PDFs del ZIP
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(DATA_FOLDER)
+
+            # Obtener solo los PDFs extraídos
+            extracted_files = [os.path.join(DATA_FOLDER, f) for f in os.listdir(DATA_FOLDER) if f.endswith(".pdf")]
+            pdf_files.extend(extracted_files)
+
+            # Eliminar el archivo ZIP después de extraer
+            os.remove(zip_path)
+        else:
+            # Guardar PDFs subidos individualmente
+            temp_path = os.path.join(DATA_FOLDER, file.name)
+            with open(temp_path, "wb") as f:
+                f.write(file.getbuffer())
+            pdf_files.append(temp_path)
+
+# Mostrar cantidad de archivos subidos
+st.subheader(f"📂 Archivos Procesados: {len(pdf_files)}")
+
+if pdf_files:
     extracted_data = defaultdict(list)
     uploaded_files_info = {}
     duplicated_files = []
     
-    for file in uploaded_files:
-        # Guardar archivos temporalmente
-        temp_path = os.path.join("data", file.name)
-        with open(temp_path, "wb") as f:
-            f.write(file.getbuffer())
-        
-        # Extraer datos
-        data = extract_data_from_pdf(temp_path)
+    for pdf_path in pdf_files:
+        # Extraer datos del PDF
+        data = extract_data_from_pdf(pdf_path)
         if data:
             dni = data["documento"].strip()
             entrevistador = data.get("entrevistador", "Desconocido")
@@ -76,7 +125,7 @@ if uploaded_files:
             valid_data.append(merged_data)
         else:
             entrevistadores = ", ".join([r["entrevistador"] for r in registros])
-            errores.append(f"El DNI {dni} (Entrevistador: {entrevistadores}) tiene {len(registros)} archivo(s) en lugar de {'2' if multiple_pdfs else '1'}.")
+            errores.append(f"El DNI {dni} (Entrevistadores: {entrevistadores}) tiene {len(registros)} archivo(s) en lugar de {'2' if multiple_pdfs else '1'}.")
 
     df = pd.DataFrame(valid_data)
     
