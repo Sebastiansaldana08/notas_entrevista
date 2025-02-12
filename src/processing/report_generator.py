@@ -3,7 +3,8 @@ import os
 
 def generate_excel_report(df, output_folder="output", filename="Reporte_Entrevistas.xlsx"):
     """
-    Genera un archivo Excel a partir del DataFrame proporcionado, agrupando los datos por modalidad y programa.
+    Genera un archivo Excel a partir del DataFrame proporcionado en una sola hoja,
+    agregando columnas de entrevistador según la sección seleccionada.
     """
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -11,10 +12,8 @@ def generate_excel_report(df, output_folder="output", filename="Reporte_Entrevis
     output_path = os.path.join(output_folder, filename)
     
     try:
-        with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-            for (modalidad, programa), group in df.groupby(["modalidad", "programa"]):
-                sheet_name = f"{modalidad[:10]}-{programa[:10]}"
-                group.to_excel(writer, sheet_name=sheet_name, index=False)
+        # Guardar DataFrame en un solo archivo Excel
+        df.to_excel(output_path, index=False, engine='openpyxl')
         return output_path
     except Exception as e:
         print(f"Error al generar el archivo Excel: {e}")
@@ -28,7 +27,9 @@ if __name__ == "__main__":
         "programa": ["MEDICINA", "INGENIERÍA BIOMÉDICA"],
         "documento": ["60482615", "60482616"],
         "Nota Entrevistador 1": [23, 35],
+        "Nombre Entrevistador 1": ["Dr. Pérez", "Dr. García"],
         "Nota Entrevistador 2": [43, 40],
+        "Nombre Entrevistador 2": ["Dra. López", "Dra. Ramírez"],
         "Total": [66, 75]
     }
     df_test = pd.DataFrame(data)

@@ -3,3 +3,4 @@ PyMuPDF
 pdfplumber
 pandas
 openpyxl
+streamlit-option-menu
