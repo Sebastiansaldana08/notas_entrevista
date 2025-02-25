@@ -143,20 +143,20 @@ if pdf_files:
             dni = data["documento"].strip()
             entrevistador = data.get("entrevistador", "Desconocido")
             
-            if dni in uploaded_files_info:
-                if multiple_pdfs and uploaded_files_info[dni] != entrevistador:
-                    extracted_data[dni].append(data)
-                else:
-                    duplicated_files.append(f"DNI {dni} - Entrevistador: {entrevistador}")
-                    continue
+            # Se verifica ahora por clave única (DNI, ENTREVISTADOR)
+            dni_key = (dni, entrevistador)
+
+            if dni_key in uploaded_files_info:
+                extracted_data[dni_key].append(data)
             else:
-                uploaded_files_info[dni] = entrevistador
-                extracted_data[dni].append(data)
+                uploaded_files_info[dni_key] = True
+                extracted_data[dni_key].append(data)
 
     valid_data = []
     errores = []
 
-    for dni, registros in extracted_data.items():
+    for dni_key, registros in extracted_data.items():
+        dni, entrevistador = dni_key
         if (multiple_pdfs and len(registros) == 2) or (not multiple_pdfs and len(registros) == 1):
             merged_data = {
                 "codigo": registros[0]["codigo"],
@@ -173,10 +173,9 @@ if pdf_files:
             valid_data.append(merged_data)
         else:
             entrevistadores = ", ".join([r["entrevistador"] for r in registros])
-            errores.append(f"El DNI {dni} (Entrevistador: {entrevistadores}) tiene {len(registros)} archivo(s) en lugar de {'2' if multiple_pdfs else '1'}.")
+            errores.append(f"El DNI {dni} (Entrevistador: {entrevistador}) tiene {len(registros)} archivo(s) en lugar de {'2' if multiple_pdfs else '1'}.")
 
     df = pd.DataFrame(valid_data)
-    # Mostrar tabla con los datos extraídos
     st.subheader("📊 Datos Extraídos")
     st.dataframe(df)
     
