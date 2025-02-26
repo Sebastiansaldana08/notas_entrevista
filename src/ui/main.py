@@ -137,7 +137,7 @@ if pdf_files:
             valid_data.append(merged_data)
         else:
             entrevistadores = ", ".join([r["entrevistador"] for r in registros])
-            errores.append(f"❌ DNI {dni} solo tiene {len(registros)} archivo(s).")
+            errores.append(f"El DNI {dni} (Entrevistador: {entrevistadores}) tiene {len(registros)} archivo(s) en lugar de {'2' if multiple_pdfs else '1'}.")
     
     df = pd.DataFrame(valid_data)
     st.subheader("📊 Datos Extraídos")
