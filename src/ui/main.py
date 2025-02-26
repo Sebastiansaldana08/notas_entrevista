@@ -143,37 +143,50 @@ if pdf_files:
             dni = data["documento"].strip()
             entrevistador = data.get("entrevistador", "Desconocido")
             
-            # Se verifica ahora por clave única (DNI, ENTREVISTADOR)
+            # Se verifica por clave única (DNI, ENTREVISTADOR)
             dni_key = (dni, entrevistador)
 
-            if dni_key in uploaded_files_info:
-                extracted_data[dni_key].append(data)
-            else:
-                uploaded_files_info[dni_key] = True
-                extracted_data[dni_key].append(data)
+            extracted_data[dni_key].append(data)
 
     valid_data = []
     errores = []
 
-    for dni_key, registros in extracted_data.items():
-        dni, entrevistador = dni_key
-        if (multiple_pdfs and len(registros) == 2) or (not multiple_pdfs and len(registros) == 1):
+    # Reorganizar la estructura para validar correctamente los archivos de cada postulante
+    grouped_data = defaultdict(list)
+    for (dni, entrevistador), registros in extracted_data.items():
+        grouped_data[dni].append((entrevistador, registros))
+
+    for dni, entrevistador_registros in grouped_data.items():
+        if multiple_pdfs and len(entrevistador_registros) == 2:  # Debe haber 2 entrevistadores
+            registros1 = entrevistador_registros[0][1][0]  # Datos del primer entrevistador
+            registros2 = entrevistador_registros[1][1][0]  # Datos del segundo entrevistador
+            
             merged_data = {
-                "codigo": registros[0]["codigo"],
-                "modalidad": registros[0]["modalidad"],
-                "programa": registros[0]["programa"],
+                "codigo": registros1["codigo"],
+                "modalidad": registros1["modalidad"],
+                "programa": registros1["programa"],
                 "documento": dni,
-                "Nota Entrevistador 1": int(registros[0]["total"]),
-                "Nombre Entrevistador 1": registros[0]["entrevistador"]
+                "Nota Entrevistador 1": int(registros1["total"]),
+                "Nombre Entrevistador 1": registros1["entrevistador"],
+                "Nota Entrevistador 2": int(registros2["total"]),
+                "Nombre Entrevistador 2": registros2["entrevistador"],
+                "Total": int(registros1["total"]) + int(registros2["total"])
             }
-            if multiple_pdfs:
-                merged_data["Nota Entrevistador 2"] = int(registros[1]["total"])
-                merged_data["Nombre Entrevistador 2"] = registros[1]["entrevistador"]
-                merged_data["Total"] = merged_data["Nota Entrevistador 1"] + merged_data["Nota Entrevistador 2"]
+            valid_data.append(merged_data)
+        elif not multiple_pdfs and len(entrevistador_registros) == 1:  # Solo un entrevistador requerido
+            registros1 = entrevistador_registros[0][1][0]
+            merged_data = {
+                "codigo": registros1["codigo"],
+                "modalidad": registros1["modalidad"],
+                "programa": registros1["programa"],
+                "documento": dni,
+                "Nota Entrevistador 1": int(registros1["total"]),
+                "Nombre Entrevistador 1": registros1["entrevistador"]
+            }
             valid_data.append(merged_data)
         else:
-            entrevistadores = ", ".join([r["entrevistador"] for r in registros])
-            errores.append(f"El DNI {dni} (Entrevistador: {entrevistador}) tiene {len(registros)} archivo(s) en lugar de {'2' if multiple_pdfs else '1'}.")
+            entrevistadores = ", ".join([r[0] for r in entrevistador_registros])
+            errores.append(f"El DNI {dni} tiene {len(entrevistador_registros)} archivo(s) en lugar de {'2' if multiple_pdfs else '1'}. Entrevistadores detectados: {entrevistadores}")
 
     df = pd.DataFrame(valid_data)
     st.subheader("📊 Datos Extraídos")
