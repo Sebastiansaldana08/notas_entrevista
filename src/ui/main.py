@@ -122,6 +122,9 @@ if pdf_files:
     
     for dni, registros in extracted_data.items():
         if (multiple_pdfs and len(registros) == 2) or (not multiple_pdfs and len(registros) == 1):
+            # Ordenar los registros por el nombre del entrevistador para mantener consistencia
+            registros = sorted(registros, key=lambda x: x["entrevistador"])
+            
             merged_data = {
                 "codigo": registros[0]["codigo"],
                 "modalidad": registros[0]["modalidad"],
